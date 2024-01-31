@@ -1,23 +1,10 @@
 # inactivate-github-deployment
 
-This action creates GitHub Deployments and Deployment Statuses through [GitHub's API](https://docs.github.com/en/rest/deployments). This action defaults the `deployment.task` to `workflowdeploy` and is designed to work with an internal dashboard that utilizes custom payload data.
-
-The `deployment.payload` is customized to have these values included:
-```json
-payload: {
-  workflow_actor: <<workflow-actor>>,
-  entity: <<entity>>,
-  instance: <<instance>>,
-  workflow_run_url: <<workflow-run-url>>
-}
-```
-
-The  `entity` value is used by the [Backstage Software Catalog] and particularly for an internal implementation of a deployments dashboard,
+This action inactivates GitHub Deployments and Deployment Statuses through [GitHub's API](https://docs.github.com/en/rest/deployments). It is designed to work with a custom Spotify Backstage GitHub Deployments plugin called [im-open/im-github-deployments].
 
 ## Index <!-- omit in toc -->
 
 - [Inputs](#inputs)
-- [Outputs](#outputs)
 - [Usage Example](#usage-example)
 - [Contributing](#contributing)
   - [Incrementing the Version](#incrementing-the-version)
@@ -31,34 +18,37 @@ When the action runs it will add a deployment and deployment status record to th
 
 ## Inputs
 
-| Parameter                | Is Required | Description                                                                                                                                                                                         |
-| ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workflow-actor`         | true        | The GitHub user who triggered the workflow                                                                                                                                                          |
-| `token`                  | true        | A token with `repo_deployment` permissions to create and update issues, workflows using this action should be granted `permissions` of `deployments: write`                                         |
-| `environment`            | true        | The environment the release was deployed to, i.e. [Dev\|QA\|Stage\|Demo\|UAT\|Prod]                                                                                                                 |
-| `release-ref`            | true        | The branch, tag or SHA that was deployed                                                                                                                                                            |
-| `deployment-status`      | true        | The status of the deployment [error\|failure\|success]                                                                                                                                              |
-| `deployment-description` | false       | Any description or message about the deployment                                                                                                                                                     |
-| `entity`                 | true        | The entity that is deployed, i.e. "proj-app", "proj-infrastruction" or "proj-db"                                                                                                                    |
-| `instance`               | true        | A freeform identifier to distinguish separately deployed instances of the entity in the same environment. Typical uses would be to name a slot and/or region, e.g "NA26", "NA26-slot1", "NA27-blue" |
-
-
-## Outputs
-
-| Parameter              | Description                              |
-| ---------------------- | ---------------------------------------- |
-| `github-deployment-id` | The GitHub id of the workflow deployment |
+| Parameter        | Is Required | Description                                                                                                                                                                                         |
+| ---------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workflow-actor` | true        | The GitHub user who triggered the workflow                                                                                                                                                          |
+| `token`          | true        | A token with `repo_deployment` permissions to create and update issues, workflows using this action should be granted `permissions` of `deployments: write`                                         |
+| `environment`    | true        | The environment the release was deployed to, i.e. [Dev\|QA\|Stage\|Demo\|UAT\|Prod]                                                                                                                 |
+| `entity`         | true        | The entity that is deployed, i.e. "proj-app", "proj-infrastruction" or "proj-db"                                                                                                                    |
+| `instance`       | true        | A freeform identifier to distinguish separately deployed instances of the entity in the same environment. Typical uses would be to name a slot and/or region, e.g "NA26", "NA26-slot1", "NA27-blue" |
 
 ## Usage Example
 
-```yml
-name: Manually Deploy to QA
+```yaml
+name: Take Down Testing
 on:
   workflow_dispatch:
+    environment:
+      description: The testing environment
+      required: true
+      type: choice
+      options:
+        - Dev
+        - QA
     inputs:
-      branchTagOrSha:
-        description: 'The branch, tag or sha to deploy '
-        required: false
+      instance:
+        description: The instance to deploy to
+        required: true
+        type: choice
+        options:
+          - Primary-Test-Slot1
+          - Primary-Test-Slot2
+          - Secondary-Test-Slot1
+          - Secondary-Test-Slot2
 
 # Permissions needed to add GitHub Deployment and Deployment
 # status objects
@@ -66,35 +56,27 @@ permissions:
   deployments: write
 
 jobs:
-  environment: 'QA'
+  environment: ${{ github.event.inputs.environment }}
   deploy-different-ways:
     runs-on: [ubuntu-20.04]
+
     steps:
-      - uses: actions/checkout@v3
+      ...
+      # Environment cleanup steps
+      ...
 
-      - id: deploy-to-qa
-        continue-on-error: true  #Setting to true so the deployment board can be updated, even if this fails
-        run: |
-          ./deploy-to-qa.sh
-
-        # Defaults to using github-actions for the login, regex matching to determine the ref-type and times shown in UTC
-      - name: Update deployment board with Defaults
-        id: defaults
-        continue-on-error: true                                      # Setting to true so the job doesn't fail if updating the board fails.
-        uses: im-open/inactivate-github-deployment@v1.0.0                # You may also reference just the major or major.minor version
-        with:
-          workflow-actor: ${{ github.actor }}                        # This will add the user who kicked off the workflow to the deployment payload
-          token: ${{ secrets.GITHUB_TOKEN }}                         # If a different token is used, update github-login with the corresponding account
-          environment: 'QA'
-          release-ref: ${{ github.event.inputs.branchTagOrSha }}
-          deploy-status: ${{ steps.deploy-to-qa.outcome }}           # outcome is the result of the step before continue-on-error is applied, i.e. [error|failure|success]
-          deployment-description: ${{ steps.deploy-to-qa.outcome }}  # information that may add supporting information to the status/result
-          entity: deployments-experiment
-          instance: ${{ inputs.instance }}
-
-      - name: Now Fail the job if the deploy step failed
-        if: steps.deploy-to-qa.outcome == 'failure'
-        run: exit 1
+      inactivate-deployment:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Inactivate deployments
+            id: inactivate-deployment
+            uses: im-open/inactivate-github-deployment@v1.0.0
+            with:
+              workflow-actor: ${{ github.actor }}
+              token: ${{ secrets.GITHUB_TOKEN }}
+              environment: ${{ github.event.inputs.environment }}
+              entity: inactivate-github-deployment
+              instance: ${{ github.event.inputs.instance }}
 ```
 
 ## Contributing
@@ -148,6 +130,7 @@ This project has adopted the [im-open's Code of Conduct](https://github.com/im-o
 Copyright &copy; 2024, Extend Health, LLC. Code released under the [MIT license](LICENSE).
 
 <!-- Links -->
+[im-open/im-github-deployments]: https://github.com/im-open/im-github-deployments
 [Backstage Software Catalog]: https://backstage.io/docs/features/software-catalog/
 [Incrementing the Version]: #incrementing-the-version
 [Recompiling Manually]: #recompiling-manually

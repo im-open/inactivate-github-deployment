@@ -2,7 +2,7 @@ const { Octokit } = require('@octokit/rest');
 const { graphql } = require('@octokit/graphql');
 const WORKFLOW_DEPLOY = 'workflowdeploy';
 
-async function inactivateDeployment(context, currentDeploymentNodeId) {
+async function inactivateDeployment(context) {
   const octokit = new Octokit({ auth: context.token });
   const octokitGraphQl = graphql.defaults({
     headers: {
@@ -20,12 +20,7 @@ async function inactivateDeployment(context, currentDeploymentNodeId) {
 
   const deploymentsList = (
     await octokit.paginate(octokit.rest.repos.listDeployments, params)
-  ).filter(
-    d =>
-      d.node_id != currentDeploymentNodeId &&
-      d.payload.entity == context.entity &&
-      d.payload.instance == context.instance
-  );
+  ).filter(d => d.payload.entity == context.entity && d.payload.instance == context.instance);
 
   const deploymentNodeIds = deploymentsList.map(d => d.node_id);
   const statusesQuery = `
