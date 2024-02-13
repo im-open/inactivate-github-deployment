@@ -39566,7 +39566,7 @@ try {
     console.log('Deployment inactivated.', setupContext);
   });
 } catch (error) {
-  core.setFailed(`An error occurred creating a GitHub deployment: ${error}`);
+  core.setFailed(`An error occurred retrieve GitHub deployments: ${error}`);
   return;
 }
 /*! Bundled license information:

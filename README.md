@@ -14,8 +14,6 @@ This action inactivates GitHub Deployments and Deployment Statuses through [GitH
 - [Code of Conduct](#code-of-conduct)
 - [License](#license)
 
-When the action runs it will add a deployment and deployment status record to the repo.  The GitHub Deployment will also have a special task d
-
 ## Inputs
 
 | Parameter        | Is Required | Description                                                                                                                                                                                         |
@@ -56,8 +54,8 @@ permissions:
   deployments: write
 
 jobs:
-  environment: ${{ github.event.inputs.environment }}
   deploy-different-ways:
+    environment: ${{ github.event.inputs.environment }}
     runs-on: [ubuntu-20.04]
 
     steps:
