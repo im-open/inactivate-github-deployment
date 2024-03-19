@@ -68,7 +68,7 @@ jobs:
         steps:
           - name: Inactivate deployments
             id: inactivate-deployment
-            uses: im-open/inactivate-github-deployment@v1.0.0
+            uses: im-open/inactivate-github-deployment@v1.0.1
             with:
               workflow-actor: ${{ github.actor }}
               token: ${{ secrets.GITHUB_TOKEN }}
