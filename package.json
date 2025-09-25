@@ -13,17 +13,17 @@
   "author": "wtw",
   "license": "ISC",
   "dependencies": {
-    "@actions/core": "^1.10.0",
-    "@actions/github": "^6.0.0",
-    "@octokit/action": "^6.0.7",
-    "@octokit/graphql": "^7.0.2",
-    "@octokit/rest": "^20.0.2",
-    "date-fns": "^2.22.1",
-    "date-fns-tz": "^1.1.4"
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@octokit/action": "^8.0.2",
+    "@octokit/graphql": "^9.0.1",
+    "@octokit/rest": "^22.0.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0"
   },
   "devDependencies": {
-    "esbuild": "^v0.19.10",
+    "esbuild": "^v0.25.10",
     "install": "^0.13.0",
-    "prettier": "^3.1.1"
+    "prettier": "^3.6.2"
   }
 }

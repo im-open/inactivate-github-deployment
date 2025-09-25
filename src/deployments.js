@@ -1,5 +1,6 @@
 const { Octokit } = require('@octokit/rest');
 const { graphql } = require('@octokit/graphql');
+const core = require('@actions/core');
 const WORKFLOW_DEPLOY = 'workflowdeploy';
 
 async function inactivateDeployment(context) {
@@ -17,10 +18,13 @@ async function inactivateDeployment(context) {
     environment: context.environment,
     per_page: 100
   };
+  core.info(`Entities to match: ${JSON.stringify(context.entities)}`);
 
   const deploymentsList = (
     await octokit.paginate(octokit.rest.repos.listDeployments, params)
-  ).filter(d => d.payload.entity == context.entity && d.payload.instance == context.instance);
+  ).filter(d =>
+    context.entities.some(e => e.entity == d.payload.entity && e.instance == d.payload.instance)
+  );
 
   const deploymentNodeIds = deploymentsList.map(d => d.node_id);
   const statusesQuery = `
@@ -49,7 +53,10 @@ async function inactivateDeployment(context) {
     for (let j = 0; j < deploymentQl.statuses.nodes.length; j++) {
       const status = deploymentQl.statuses.nodes[j];
 
-      if (deployment.payload.instance == context.instance && status.state == 'SUCCESS') {
+      if (
+        context.entities.some(e => deployment.payload.instance === e.instance) &&
+        status.state == 'SUCCESS'
+      ) {
         await createDeploymentStatus(
           octokit,
           context.owner,
@@ -61,6 +68,35 @@ async function inactivateDeployment(context) {
       }
     }
   }
+
+  const deploymentsListAfter = (
+    await octokit.paginate(octokit.rest.repos.listDeployments, params)
+  ).filter(d =>
+    context.entities.some(e => e.entity == d.payload.entity && e.instance == d.payload.instance)
+  );
+
+  const deploymentNodeIdsAfter = deploymentsListAfter.map(d => d.node_id);
+  const statusesQueryAfter = `
+      query($deploymentNodeIdsAfter: [ID!]!) {
+        deployments: nodes(ids: $deploymentNodeIdsAfter) {
+          ... on Deployment {
+            id
+            databaseId
+            statuses(first:1) {
+              nodes {
+                description
+                state
+                createdAt
+              }
+            }
+          }
+        }
+      }`;
+
+  const statusesAfter = await octokitGraphQl(statusesQueryAfter, {
+    deploymentNodeIdsAfter: deploymentNodeIdsAfter
+  });
+  console.log(`Statuses After Update: ${JSON.stringify(statusesAfter, null, 2)}`);
 }
 
 async function createDeploymentStatus(octokit, owner, repo, deployment_id, state, description) {
@@ -72,6 +108,7 @@ async function createDeploymentStatus(octokit, owner, repo, deployment_id, state
     description: description,
     auto_inactive: false // we will manually inactivate prior deployments
   };
+  core.info(`Creating deployment status with params: ${JSON.stringify(statusParams)}`);
   const status = await octokit.rest.repos.createDeploymentStatus(statusParams);
 }
 
