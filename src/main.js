@@ -16,7 +16,7 @@ try {
     // The token can be sent by and filtered out in the log
     // but we'll delete it just to be safe.
     delete setupContext.token;
-    console.log('Deployment inactivated.', setupContext);
+    core.info('Deployment inactivated.', JSON.stringify(setupContext, null, 2));
   });
 } catch (error) {
   //Anything that shows up here should be a re-thrown error where the detailed error was already logged.

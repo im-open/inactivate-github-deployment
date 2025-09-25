@@ -21,8 +21,9 @@ This action inactivates GitHub Deployments and Deployment Statuses through [GitH
 | `workflow-actor` | true        | The GitHub user who triggered the workflow                                                                                                                                                          |
 | `token`          | true        | A token with `repo_deployment` permissions to create and update issues, workflows using this action should be granted `permissions` of `deployments: write`                                         |
 | `environment`    | true        | The environment the release was deployed to, i.e. [Dev\|QA\|Stage\|Demo\|UAT\|Prod]                                                                                                                 |
-| `entity`         | true        | The entity that is deployed, i.e. "proj-app", "proj-infrastruction" or "proj-db"                                                                                                                    |
-| `instance`       | true        | A freeform identifier to distinguish separately deployed instances of the entity in the same environment. Typical uses would be to name a slot and/or region, e.g "NA26", "NA26-slot1", "NA27-blue" |
+| `entity`         | false        | Required if entities are null. The entity that is deployed, i.e. "proj-app", "proj-infrastruction" or "proj-db"                                                                                                                    |
+| `instance`       | false        | Required if entities are null. A freeform identifier to distinguish separately deployed instances of the entity in the same environment. Typical uses would be to name a slot and/or region, e.g "NA26", "NA26-slot1", "NA27-blue" |
+| `entities`       | false        | Required if entity and instance are null. JSON array of entity/instance objects to inactivate for an environment. Object has properties of entity, and instance. Example: `[{'entity':'proj-app','instance':'NA26'},{'entity':'proj-infrastructure','instance':'NA26'}]` |
 
 ## Usage Example
 
@@ -55,7 +56,7 @@ permissions:
 
 jobs:
   deploy-different-ways:
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ inputs.environment }}
     runs-on: [ubuntu-20.04]
 
     steps:
@@ -68,13 +69,34 @@ jobs:
         steps:
           - name: Inactivate deployments
             id: inactivate-deployment
-            uses: im-open/inactivate-github-deployment@v1.0.1
+            uses: im-open/inactivate-github-deployment@v1.0.2
             with:
               workflow-actor: ${{ github.actor }}
               token: ${{ secrets.GITHUB_TOKEN }}
-              environment: ${{ github.event.inputs.environment }}
+              environment: ${{ inputs.environment }}
               entity: inactivate-github-deployment
-              instance: ${{ github.event.inputs.instance }}
+              instance: ${{ inputs.instance }}
+              
+  cleanup-slot-deployments:
+    environment: ${{ inputs.environment }}
+    runs-on: [ubuntu-20.04]
+
+    steps:
+      ...
+      # Environment cleanup steps
+      ...
+
+      inactivate-deployment:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Inactivate deployments
+            id: inactivate-deployment
+            uses: im-open/inactivate-github-deployment@v1.0.2
+            with:
+              workflow-actor: ${{ github.actor }}
+              token: ${{ secrets.GITHUB_TOKEN }}
+              environment: ${{ inputs.environment }}
+              entities: '[{"entity": "my-app", "instance": "na26-blue"}]'
 ```
 
 ## Contributing

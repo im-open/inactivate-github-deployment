@@ -16,8 +16,7 @@ class context {
     workflow_actor,
     token,
     environment,
-    entity,
-    instance,
+    entities,
     server_url,
     workflow_run_id,
     owner,
@@ -26,8 +25,7 @@ class context {
     this.workflow_actor = workflow_actor;
     this.token = token;
     this.environment = environment;
-    this.entity = entity;
-    this.instance = instance;
+    this.entities = entities;
     this.server_url = server_url;
     this.workflow_run_id = workflow_run_id;
     this.owner = owner;
@@ -39,8 +37,19 @@ function setup() {
   const workflow_actor = core.getInput('workflow-actor', requiredArgOptions);
   const token = core.getInput('token', requiredArgOptions);
   const environment = core.getInput('environment', requiredArgOptions);
-  const entity = core.getInput('entity', requiredArgOptions);
-  const instance = core.getInput('instance', requiredArgOptions);
+  const entity = core.getInput('entity', notRequiredArgOptions);
+  const instance = core.getInput('instance', notRequiredArgOptions);
+  const entitiesJSON = core.getInput('entities', notRequiredArgOptions);
+  if (!entity && !instance && !entitiesJSON) {
+    core.setFailed('Either entity and instance inputs or entities input are required.');
+  }
+  let entities = [];
+  if (entity && instance && !entitiesJSON) {
+    entities.push({ entity, instance });
+  } else {
+    entities = entitiesJSON ? JSON.parse(entitiesJSON) : [];
+  }
+
   const server_url = github.context.serverUrl;
   const workflow_run_id = github.context.runId;
   const owner = github.context.repo.owner;
@@ -50,8 +59,7 @@ function setup() {
     workflow_actor,
     token,
     environment,
-    entity,
-    instance,
+    entities,
     server_url,
     workflow_run_id,
     owner,

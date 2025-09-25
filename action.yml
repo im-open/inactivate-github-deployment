@@ -13,11 +13,13 @@ inputs:
     required: true
   entity:
     description: The entity that is deployed, i.e. "proj-app", "proj-infrastruction" or "proj-db"
-    required: true
+    required: false
   instance:
     description: A freeform identifier to distinguish separately deployed instances of the entity in the same environment. Typical uses would be to name a slot and/or region, e.g "NA26", "NA26-slot1", "NA27-blue", "Primary", "Secondary", etc.
-    required: true
-
+    required: false
+  entities:
+    description: "JSON array of entity/instance objects to inactivate for an environment. Object has properties of entity, and instance. Example: [{'entity':'proj-app','instance':'NA26'},{'entity':'proj-infrastructure','instance':'NA26'}]"
+    required: false
 runs:
   using: node20
   main: dist/index.js
