@@ -68,6 +68,33 @@ async function inactivateDeployment(context) {
       }
     }
   }
+
+  const deploymentsListAfter = (
+    await octokit.paginate(octokit.rest.repos.listDeployments, params)
+  ).filter(d =>
+    context.entities.some(e => e.entity == d.payload.entity && e.instance == d.payload.instance)
+  );
+
+  const deploymentNodeIdsAfter = deploymentsListAfter.map(d => d.node_id);
+  const statusesQueryAfter = `
+      query($deploymentNodeIdsAfter: [ID!]!) {
+        deployments: nodes(ids: $deploymentNodeIdsAfter) {
+          ... on Deployment {
+            id
+            databaseId
+            statuses(first:1) {
+              nodes {
+                description
+                state
+                createdAt
+              }
+            }
+          }
+        }
+      }`;
+
+  const statusesAfter = await octokitGraphQl(statusesQueryAfter, { deploymentNodeIdsAfter: deploymentNodeIdsAfter });
+  console.log(`Statuses After Update: ${JSON.stringify(statusesAfter, null, 2)}`);
 }
 
 async function createDeploymentStatus(octokit, owner, repo, deployment_id, state, description) {
