@@ -93,7 +93,9 @@ async function inactivateDeployment(context) {
         }
       }`;
 
-  const statusesAfter = await octokitGraphQl(statusesQueryAfter, { deploymentNodeIdsAfter: deploymentNodeIdsAfter });
+  const statusesAfter = await octokitGraphQl(statusesQueryAfter, {
+    deploymentNodeIdsAfter: deploymentNodeIdsAfter
+  });
   console.log(`Statuses After Update: ${JSON.stringify(statusesAfter, null, 2)}`);
 }
 
